@@ -69,6 +69,73 @@ def track_analysis_completion(analysis_time, file_size):
         "file_size_mb": file_size
     })
 
+def track_error(error_type, error_message, error_details=None, user_context=None):
+    """Track errors for debugging and improvement"""
+    try:
+        error_data = {
+            "timestamp": datetime.now().isoformat(),
+            "action": "error",
+            "error_type": error_type,
+            "error_message": str(error_message),
+            "error_details": error_details,
+            "user_context": user_context,
+            "session_id": st.session_state.get("session_id", "unknown"),
+            "page": "mixbot_main",
+            "user_agent": st.session_state.get("user_agent", "unknown"),
+            "file_uploaded": st.session_state.get("file_uploaded", False),
+            "daw_selected": st.session_state.get("daw_selected", "none")
+        }
+        
+        # Log to error file
+        with open("error_log.jsonl", "a") as f:
+            f.write(json.dumps(error_data) + "\n")
+        
+        # Also log to main analytics
+        track_user_action("error", error_data)
+        
+        return error_data
+    except Exception as e:
+        # Fallback error logging
+        try:
+            with open("error_log_fallback.txt", "a") as f:
+                f.write(f"{datetime.now().isoformat()}: {error_type} - {error_message}\n")
+        except:
+            pass  # Last resort - don't break the app
+
+def track_file_processing_error(file_name, file_size, error_type, error_message):
+    """Track file processing specific errors"""
+    track_error(
+        error_type=error_type,
+        error_message=error_message,
+        error_details={
+            "file_name": file_name,
+            "file_size": file_size,
+            "file_type": file_name.split(".")[-1] if "." in file_name else "unknown"
+        },
+        user_context="file_processing"
+    )
+
+def track_analysis_error(analysis_step, error_type, error_message, metrics=None):
+    """Track analysis specific errors"""
+    track_error(
+        error_type=error_type,
+        error_message=error_message,
+        error_details={
+            "analysis_step": analysis_step,
+            "metrics_available": list(metrics.keys()) if metrics else []
+        },
+        user_context="audio_analysis"
+    )
+
+def track_ui_error(ui_component, error_type, error_message):
+    """Track UI specific errors"""
+    track_error(
+        error_type=error_type,
+        error_message=error_message,
+        error_details={"ui_component": ui_component},
+        user_context="user_interface"
+    )
+
 # Page configuration
 st.set_page_config(
     page_title="Mixbot - AI Mixing Assistant",
@@ -253,14 +320,33 @@ def load_and_analyze_audio(uploaded_file):
             # Run analysis
             analyze_audio(tmp_file_path)
             analysis_output = captured_output.getvalue()
+        except Exception as analysis_error:
+            # Track analysis-specific errors
+            track_analysis_error(
+                analysis_step="audio_analysis",
+                error_type="analysis_failed",
+                error_message=str(analysis_error),
+                metrics={}
+            )
+            raise analysis_error
         finally:
             sys.stdout = old_stdout
             # Clean up temporary file
-            os.unlink(tmp_file_path)
+            try:
+                os.unlink(tmp_file_path)
+            except Exception as cleanup_error:
+                track_error("file_cleanup_failed", str(cleanup_error))
         
         return analysis_output, tmp_file_path
         
     except Exception as e:
+        # Track file processing errors
+        track_file_processing_error(
+            file_name=uploaded_file.name,
+            file_size=uploaded_file.size,
+            error_type="file_processing_failed",
+            error_message=str(e)
+        )
         st.error(f"Error analyzing audio: {str(e)}")
         return None, None
 
@@ -1247,37 +1333,79 @@ def main():
             # Analyze button
             if st.button("🔍 Analyze Track", type="primary"):
                 start_time = time.time()
-                with st.spinner("Analyzing your track..."):
-                    # Run analysis
-                    analysis_output, temp_path = load_and_analyze_audio(uploaded_file)
-                    
-                    if analysis_output:
-                        # Calculate analysis time
-                        analysis_time = time.time() - start_time
+                try:
+                    with st.spinner("Analyzing your track..."):
+                        # Run analysis
+                        analysis_output, temp_path = load_and_analyze_audio(uploaded_file)
                         
-                        # Track analysis completion
-                        track_analysis_completion(analysis_time, uploaded_file.size)
-                        
-                        # Store results in session state
-                        st.session_state.analysis_results = analysis_output
-                        st.session_state.feedback_generated = True
-                        
-                        # Extract metrics
-                        metrics = extract_metrics_from_output(analysis_output)
-                        
-                        # Track genre detection
-                        if vibe_reference:
-                            genre_info = analyze_genre_characteristics(metrics.get('tempo', 120), vibe_reference, metrics)
-                            track_genre_detection(genre_info['genre'])
-                        
-                        # Generate feedback
-                        feedback_sections = generate_gpt_feedback(metrics, selected_daw, vibe_reference)
-                        
-                        # Store feedback in session state
-                        st.session_state.feedback_sections = feedback_sections
-                        st.session_state.metrics = metrics
-                        
-                        st.success("✅ Analysis complete!")
+                        if analysis_output:
+                            # Calculate analysis time
+                            analysis_time = time.time() - start_time
+                            
+                            # Track analysis completion
+                            track_analysis_completion(analysis_time, uploaded_file.size)
+                            
+                            # Store results in session state
+                            st.session_state.analysis_results = analysis_output
+                            st.session_state.feedback_generated = True
+                            
+                            # Extract metrics
+                            try:
+                                metrics = extract_metrics_from_output(analysis_output)
+                            except Exception as metrics_error:
+                                track_analysis_error(
+                                    analysis_step="metrics_extraction",
+                                    error_type="metrics_parsing_failed",
+                                    error_message=str(metrics_error)
+                                )
+                                st.error("Error extracting metrics from analysis")
+                                return
+                            
+                            # Track genre detection
+                            if vibe_reference:
+                                try:
+                                    genre_info = analyze_genre_characteristics(metrics.get('tempo', 120), vibe_reference, metrics)
+                                    track_genre_detection(genre_info['genre'])
+                                except Exception as genre_error:
+                                    track_analysis_error(
+                                        analysis_step="genre_detection",
+                                        error_type="genre_analysis_failed",
+                                        error_message=str(genre_error),
+                                        metrics=metrics
+                                    )
+                            
+                            # Generate feedback
+                            try:
+                                feedback_sections = generate_gpt_feedback(metrics, selected_daw, vibe_reference)
+                            except Exception as feedback_error:
+                                track_analysis_error(
+                                    analysis_step="feedback_generation",
+                                    error_type="feedback_generation_failed",
+                                    error_message=str(feedback_error),
+                                    metrics=metrics
+                                )
+                                st.error("Error generating feedback")
+                                return
+                            
+                            # Store feedback in session state
+                            st.session_state.feedback_sections = feedback_sections
+                            st.session_state.metrics = metrics
+                            
+                            st.success("✅ Analysis complete!")
+                        else:
+                            track_error(
+                                error_type="analysis_returned_none",
+                                error_message="Analysis function returned None",
+                                user_context="analysis_button"
+                            )
+                            st.error("❌ Analysis failed. Please try again.")
+                except Exception as e:
+                    track_error(
+                        error_type="analysis_button_error",
+                        error_message=str(e),
+                        user_context="analysis_button"
+                    )
+                    st.error(f"❌ Unexpected error during analysis: {str(e)}")
     
     with col2:
         st.markdown('<h2 class="sub-header">📈 Quick Stats</h2>', unsafe_allow_html=True)
