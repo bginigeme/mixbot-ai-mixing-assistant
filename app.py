@@ -779,6 +779,165 @@ def get_daw_plugins(daw):
 - **Bitcrusher**: Bit reduction effects
 - **Resonator**: Resonant filter effects
 - **Frequency Shifter**: Frequency manipulation"""
+        },
+        
+        "Serato DJ Pro": {
+            "eq": """
+- **3-Band EQ**: High, mid, low frequency control
+- **Filter**: High-pass and low-pass filters
+- **FX Units**: Reverb, delay, echo, flanger
+- **Sample Player**: Trigger samples and loops
+- **Pitch Control**: Key and tempo adjustment
+- **Auto Gain**: Automatic level matching
+- **Isolator**: Cut frequencies completely""",
+            
+            "compression": """
+- **Auto Gain**: Automatic level matching between tracks
+- **Limiter**: Prevent clipping during transitions
+- **Compressor**: Control dynamic range
+- **Gate**: Reduce unwanted noise
+- **Level Matching**: Consistent track levels""",
+            
+            "expansion": """
+- **Gate**: Reduce noise and unwanted sounds
+- **Auto Gain**: Dynamic level adjustment
+- **Filter**: Frequency-based expansion""",
+            
+            "effects": """
+- **Reverb**: Add space and atmosphere
+- **Delay**: Create rhythmic effects
+- **Echo**: Classic DJ echo effect
+- **Flanger**: Modulate frequency
+- **Filter**: Sweep frequencies for transitions
+- **Phaser**: Phase shifting effects
+- **Chorus**: Modulation effects
+- **Distortion**: Add grit and character""",
+            
+            "third_party": """
+- **Serato DJ Pro**: Professional DJ software
+- **Serato Sample**: Sample triggering and manipulation
+- **Serato FX**: Advanced effects processing
+- **Serato Pitch 'n Time**: Advanced pitch and tempo control
+- **Serato Video**: Video mixing capabilities"""
+        },
+        
+        "Rekordbox": {
+            "eq": """
+- **3-Band EQ**: High, mid, low control
+- **Isolator**: Cut frequencies completely
+- **Filter**: High-pass and low-pass
+- **Color FX**: Frequency-based effects
+- **Beat FX**: Tempo-synced effects
+- **Auto Gain**: Match track levels
+- **Quantize**: Beat-synced effects""",
+            
+            "compression": """
+- **Auto Gain**: Match track levels automatically
+- **Limiter**: Prevent distortion
+- **Compressor**: Control dynamics
+- **Gate**: Noise reduction
+- **Level Matching**: Consistent levels across tracks""",
+            
+            "expansion": """
+- **Gate**: Noise reduction and expansion
+- **Auto Gain**: Dynamic level adjustment
+- **Filter**: Frequency-based expansion""",
+            
+            "effects": """
+- **Reverb**: Add space and atmosphere
+- **Delay**: Create rhythmic effects
+- **Echo**: Classic DJ echo
+- **Flanger**: Modulate frequency
+- **Filter**: Sweep frequencies
+- **Phaser**: Phase shifting
+- **Chorus**: Modulation effects
+- **Distortion**: Add character""",
+            
+            "third_party": """
+- **Rekordbox**: Pioneer's professional DJ software
+- **Pioneer CDJs**: Hardware integration
+- **Pioneer DJM Mixers**: Hardware effects
+- **Rekordbox Video**: Video mixing capabilities"""
+        },
+        
+        "Traktor Pro": {
+            "eq": """
+- **3-Band EQ**: High, mid, low control
+- **Filter**: High-pass and low-pass
+- **FX Units**: Advanced effects processing
+- **Remix Decks**: Sample triggering
+- **Stems**: Multitrack mixing
+- **Auto Gain**: Level matching
+- **Isolator**: Frequency cutting""",
+            
+            "compression": """
+- **Auto Gain**: Automatic level matching
+- **Limiter**: Prevent clipping
+- **Compressor**: Dynamic control
+- **Gate**: Noise reduction
+- **Level Matching**: Consistent levels""",
+            
+            "expansion": """
+- **Gate**: Noise reduction and expansion
+- **Auto Gain**: Dynamic level adjustment
+- **Filter**: Frequency-based expansion""",
+            
+            "effects": """
+- **Reverb**: Add space and atmosphere
+- **Delay**: Create rhythmic effects
+- **Echo**: Classic DJ echo
+- **Flanger**: Modulate frequency
+- **Filter**: Sweep frequencies
+- **Phaser**: Phase shifting
+- **Chorus**: Modulation effects
+- **Distortion**: Add character
+- **Remix Decks**: Sample manipulation""",
+            
+            "third_party": """
+- **Traktor Pro**: Native Instruments DJ software
+- **Traktor Kontrol**: Hardware controllers
+- **Traktor Audio**: Audio interfaces
+- **Traktor Stems**: Multitrack mixing"""
+        },
+        
+        "Virtual DJ": {
+            "eq": """
+- **3-Band EQ**: High, mid, low control
+- **Filter**: High-pass and low-pass
+- **FX Units**: Effects processing
+- **Auto Gain**: Level matching
+- **Isolator**: Frequency cutting
+- **Spectrum**: Real-time analyzer
+- **Pitch Control**: Tempo and key adjustment""",
+            
+            "compression": """
+- **Auto Gain**: Automatic level matching
+- **Limiter**: Prevent clipping
+- **Compressor**: Dynamic control
+- **Gate**: Noise reduction
+- **Level Matching**: Consistent levels""",
+            
+            "expansion": """
+- **Gate**: Noise reduction and expansion
+- **Auto Gain**: Dynamic level adjustment
+- **Filter**: Frequency-based expansion""",
+            
+            "effects": """
+- **Reverb**: Add space and atmosphere
+- **Delay**: Create rhythmic effects
+- **Echo**: Classic DJ echo
+- **Flanger**: Modulate frequency
+- **Filter**: Sweep frequencies
+- **Phaser**: Phase shifting
+- **Chorus**: Modulation effects
+- **Distortion**: Add character
+- **Video Mixing**: Video effects""",
+            
+            "third_party": """
+- **Virtual DJ**: Affordable DJ software
+- **Virtual DJ Pro**: Professional features
+- **Virtual DJ Video**: Video mixing capabilities
+- **Virtual DJ Karaoke**: Karaoke features"""
         }
     }
     
@@ -984,7 +1143,42 @@ This will destroy your mix quality and cause distortion.
 - Consider using soft clipping for character instead
 - Re-export your mix with proper headroom
 """
-    else:
+    
+    # DJ-specific feedback
+    dj_software = ["Serato DJ Pro", "Rekordbox", "Traktor Pro", "Virtual DJ"]
+    if daw in dj_software:
+        feedback_sections['dj_mixing'] = f"""
+🎧 **DJ Mixing Tips for {daw}**
+    
+**Beat Matching:**
+- Your track is {tempo:.0f} BPM - perfect for mixing with tracks in the same range
+- Use pitch control to adjust tempo gradually during transitions
+- Match energy levels between tracks for smooth flow
+    
+**Level Management:**
+- Current RMS: {rms_db:.1f} dB - aim for consistent levels across your set
+- Use Auto Gain features to match levels automatically
+- Keep peaks below -1 dB to prevent distortion
+    
+**EQ Mixing:**
+- High-pass filter around 80Hz to reduce mud during transitions
+- Cut competing frequencies between tracks (e.g., cut bass on incoming track)
+- Use isolator for dramatic frequency cuts during builds
+    
+**Transition Techniques:**
+- Use filter sweeps for smooth transitions
+- Match energy levels between tracks
+- Consider key compatibility for harmonic mixing
+- Use effects sparingly - less is more in DJ mixing
+    
+**Performance Tips:**
+- Set cue points at key moments (drops, breaks, vocals)
+- Use beat-synced effects for rhythmic impact
+- Practice transitions with different track combinations
+- Monitor your levels constantly during performance
+"""
+    # Handle clipping for non-DJ software
+    if not metrics.get('clipping', False) and daw not in dj_software:
         feedback_sections['clipping'] = """
 ✅ **No Clipping - Good Headroom Management**
 Your track has proper headroom for mastering.
@@ -1322,7 +1516,8 @@ def main_app_content():
         try:
             daw_options = [
                 "FL Studio", "Ableton Live", "Logic Pro", "Pro Tools", 
-                "Cubase", "Reaper", "Studio One", "Bitwig Studio"
+                "Cubase", "Reaper", "Studio One", "Bitwig Studio",
+                "Serato DJ Pro", "Rekordbox", "Traktor Pro", "Virtual DJ"
             ]
             selected_daw = st.selectbox("Select your DAW:", daw_options, 
                                        help="Choose your DAW for specific plugin recommendations")
