@@ -136,6 +136,46 @@ def track_ui_error(ui_component, error_type, error_message):
         user_context="user_interface"
     )
 
+def track_network_error(error_type, error_message, url=None, status_code=None, response_time=None):
+    """Track network-related errors"""
+    track_error(
+        error_type=error_type,
+        error_message=error_message,
+        error_details={
+            "url": url,
+            "status_code": status_code,
+            "response_time": response_time,
+            "error_category": "network"
+        },
+        user_context="network_request"
+    )
+
+def track_streamlit_error(error_type, error_message, component=None, session_state=None):
+    """Track Streamlit-specific errors"""
+    track_error(
+        error_type=error_type,
+        error_message=error_message,
+        error_details={
+            "component": component,
+            "session_state_keys": list(session_state.keys()) if session_state else [],
+            "error_category": "streamlit"
+        },
+        user_context="streamlit_framework"
+    )
+
+def track_browser_error(error_type, error_message, user_agent=None, browser_info=None):
+    """Track browser/client-side errors"""
+    track_error(
+        error_type=error_type,
+        error_message=error_message,
+        error_details={
+            "user_agent": user_agent,
+            "browser_info": browser_info,
+            "error_category": "browser"
+        },
+        user_context="browser_client"
+    )
+
 # Page configuration
 st.set_page_config(
     page_title="Mixbot - AI Mixing Assistant",
@@ -1249,6 +1289,26 @@ def main():
     # Initialize analytics
     initialize_analytics()
     
+    # Global error handling wrapper
+    try:
+        main_app_content()
+    except Exception as e:
+        # Track any unhandled errors
+        track_error(
+            error_type="unhandled_exception",
+            error_message=str(e),
+            error_details={
+                "exception_type": type(e).__name__,
+                "traceback": str(e),
+                "error_category": "unhandled"
+            },
+            user_context="main_app"
+        )
+        st.error(f"❌ An unexpected error occurred: {str(e)}")
+        st.info("Please try refreshing the page or contact support if the issue persists.")
+
+def main_app_content():
+    
     # Header
     st.markdown('<h1 class="main-header">🎵 Mixbot</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">AI-Powered Mixing Assistant</p>', unsafe_allow_html=True)
@@ -1259,16 +1319,27 @@ def main():
         st.markdown("*Configure your analysis preferences*")
         
         # DAW selection
-        daw_options = [
-            "FL Studio", "Ableton Live", "Logic Pro", "Pro Tools", 
-            "Cubase", "Reaper", "Studio One", "Bitwig Studio"
-        ]
-        selected_daw = st.selectbox("Select your DAW:", daw_options, 
-                                   help="Choose your DAW for specific plugin recommendations")
-        
-        # Track DAW selection
-        if selected_daw:
-            track_daw_selection(selected_daw)
+        try:
+            daw_options = [
+                "FL Studio", "Ableton Live", "Logic Pro", "Pro Tools", 
+                "Cubase", "Reaper", "Studio One", "Bitwig Studio"
+            ]
+            selected_daw = st.selectbox("Select your DAW:", daw_options, 
+                                       help="Choose your DAW for specific plugin recommendations")
+            
+            # Track DAW selection
+            if selected_daw:
+                track_daw_selection(selected_daw)
+                st.session_state.daw_selected = selected_daw
+        except Exception as e:
+            track_streamlit_error(
+                error_type="daw_selection_error",
+                error_message=str(e),
+                component="selectbox",
+                session_state=st.session_state
+            )
+            st.error("Error with DAW selection component")
+            selected_daw = "FL Studio"  # Default fallback
         
         # Vibe/Reference input
         vibe_reference = st.text_input("Vibe/Artist Reference (optional):", 
@@ -1294,6 +1365,17 @@ def main():
         - **Swipe** to navigate sections
         - **Pinch** to zoom charts
         """)
+        
+        st.markdown("---")
+        st.markdown("### 🐛 Report Issues")
+        if st.button("🚨 Report a Bug"):
+            st.info("""
+            **If you encounter any errors (like AxiosError):**
+            1. Check your browser console (F12)
+            2. Try refreshing the page
+            3. Use a different browser
+            4. Contact support with error details
+            """)
     
     # Main content
     col1, col2 = st.columns([2, 1])
@@ -1306,18 +1388,65 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
+        # Network status indicator
+        try:
+            import requests
+            response = requests.get("https://httpbin.org/status/200", timeout=5)
+            if response.status_code == 200:
+                st.markdown("""
+                <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 0.5rem; margin-bottom: 1rem;">
+                    <small>🌐 <strong>Network Status:</strong> Connected</small>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 0.5rem; margin-bottom: 1rem;">
+                    <small>⚠️ <strong>Network Status:</strong> Slow connection detected</small>
+                </div>
+                """, unsafe_allow_html=True)
+        except Exception as e:
+            st.markdown("""
+            <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 0.5rem; margin-bottom: 1rem;">
+                <small>❌ <strong>Network Status:</strong> Connection issues detected</small>
+            </div>
+            """, unsafe_allow_html=True)
+            # Track network connectivity issues
+            track_network_error(
+                error_type="connectivity_test_failed",
+                error_message=str(e),
+                url="https://httpbin.org/status/200"
+            )
+        
         st.markdown('<h2 class="sub-header">📁 Upload Your Track</h2>', unsafe_allow_html=True)
         
         # File upload
-        uploaded_file = st.file_uploader(
-            "Choose an audio file",
-            type=['wav', 'mp3'],
-            help="Upload a WAV or MP3 file for analysis"
-        )
-        
-        if uploaded_file is not None:
-            # Track file upload
-            track_file_upload(uploaded_file.name, uploaded_file.size)
+        try:
+            uploaded_file = st.file_uploader(
+                "Choose an audio file",
+                type=['wav', 'mp3'],
+                help="Upload a WAV or MP3 file for analysis"
+            )
+            
+            if uploaded_file is not None:
+                # Track file upload
+                track_file_upload(uploaded_file.name, uploaded_file.size)
+                
+                # Store file info in session state for error tracking
+                st.session_state.file_uploaded = True
+                st.session_state.current_file = {
+                    "name": uploaded_file.name,
+                    "size": uploaded_file.size,
+                    "type": uploaded_file.type
+                }
+        except Exception as e:
+            track_streamlit_error(
+                error_type="file_uploader_error",
+                error_message=str(e),
+                component="file_uploader",
+                session_state=st.session_state
+            )
+            st.error("Error with file upload component")
+            uploaded_file = None
             
             st.success(f"✅ Uploaded: {uploaded_file.name}")
             
