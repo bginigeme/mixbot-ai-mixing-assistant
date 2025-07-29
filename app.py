@@ -74,7 +74,7 @@ st.set_page_config(
     page_title="Mixbot - AI Mixing Assistant",
     page_icon="🎵",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Custom CSS for professional styling
@@ -154,6 +154,75 @@ st.markdown("""
     
     .sidebar .sidebar-content {
         background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Mobile responsive improvements */
+    @media (max-width: 768px) {
+        .main-header {
+            font-size: 2rem !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        .sub-header {
+            font-size: 1.2rem !important;
+        }
+        
+        .metric-card {
+            padding: 1rem !important;
+            margin: 0.25rem 0 !important;
+        }
+        
+        .feedback-section {
+            padding: 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+        
+        .upload-area {
+            padding: 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+        
+        /* Hide sidebar on very small screens */
+        @media (max-width: 480px) {
+            .css-1d391kg {
+                display: none !important;
+            }
+        }
+    }
+    
+    /* Mobile-friendly button styles */
+    .stButton > button {
+        width: 100% !important;
+        margin: 0.5rem 0 !important;
+    }
+    
+    /* Mobile-friendly file uploader */
+    .stFileUploader > div {
+        width: 100% !important;
+    }
+    
+    /* Responsive columns */
+    @media (max-width: 768px) {
+        .row-widget.stHorizontal {
+            flex-direction: column !important;
+        }
+        
+        .row-widget.stHorizontal > div {
+            width: 100% !important;
+            margin-bottom: 1rem !important;
+        }
+    }
+    
+    /* Mobile-friendly expandable sections */
+    @media (max-width: 768px) {
+        .streamlit-expanderHeader {
+            font-size: 1rem !important;
+            padding: 0.75rem !important;
+        }
+        
+        .streamlit-expanderContent {
+            padding: 0.75rem !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1101,13 +1170,15 @@ def main():
     # Sidebar
     with st.sidebar:
         st.markdown("### 🎛️ Settings")
+        st.markdown("*Configure your analysis preferences*")
         
         # DAW selection
         daw_options = [
             "FL Studio", "Ableton Live", "Logic Pro", "Pro Tools", 
             "Cubase", "Reaper", "Studio One", "Bitwig Studio"
         ]
-        selected_daw = st.selectbox("Select your DAW:", daw_options)
+        selected_daw = st.selectbox("Select your DAW:", daw_options, 
+                                   help="Choose your DAW for specific plugin recommendations")
         
         # Track DAW selection
         if selected_daw:
@@ -1115,24 +1186,40 @@ def main():
         
         # Vibe/Reference input
         vibe_reference = st.text_input("Vibe/Artist Reference (optional):", 
-                                     placeholder="e.g., 'The Weeknd vibes' or 'Dark trap'")
+                                     placeholder="e.g., 'The Weeknd vibes' or 'Dark trap'",
+                                     help="Add genre or artist reference for personalized feedback")
         
         st.markdown("---")
         st.markdown("### 📊 About")
         st.markdown("""
-        Mixbot analyzes your audio and provides professional mixing feedback tailored to your DAW.
+        **Mixbot** analyzes your audio and provides professional mixing feedback tailored to your DAW.
         
         **Features:**
-        - Audio analysis
-        - DAW-specific recommendations
-        - Professional mixing tips
-        - Mastering preparation
+        - 🎵 Audio analysis
+        - 🎛️ DAW-specific recommendations  
+        - 🎚️ Professional mixing tips
+        - 🎧 Mastering preparation
+        """)
+        
+        st.markdown("---")
+        st.markdown("### 📱 Mobile Tips")
+        st.markdown("""
+        - **Tap ☰** to open/close settings
+        - **Swipe** to navigate sections
+        - **Pinch** to zoom charts
         """)
     
     # Main content
     col1, col2 = st.columns([2, 1])
     
     with col1:
+        # Mobile-friendly settings toggle
+        st.markdown("""
+        <div style="text-align: right; margin-bottom: 1rem;">
+            <small>💡 <strong>Tip:</strong> Use the sidebar (☰) for DAW settings and vibe input</small>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.markdown('<h2 class="sub-header">📁 Upload Your Track</h2>', unsafe_allow_html=True)
         
         # File upload
