@@ -1420,24 +1420,13 @@ def main_app_content():
         st.markdown('<h2 class="sub-header">📁 Upload Your Track</h2>', unsafe_allow_html=True)
         
         # File upload
+        uploaded_file = None
         try:
             uploaded_file = st.file_uploader(
                 "Choose an audio file",
                 type=['wav', 'mp3'],
                 help="Upload a WAV or MP3 file for analysis"
             )
-            
-            if uploaded_file is not None:
-                # Track file upload
-                track_file_upload(uploaded_file.name, uploaded_file.size)
-                
-                # Store file info in session state for error tracking
-                st.session_state.file_uploaded = True
-                st.session_state.current_file = {
-                    "name": uploaded_file.name,
-                    "size": uploaded_file.size,
-                    "type": uploaded_file.type
-                }
         except Exception as e:
             track_streamlit_error(
                 error_type="file_uploader_error",
@@ -1446,7 +1435,18 @@ def main_app_content():
                 session_state=st.session_state
             )
             st.error("Error with file upload component")
-            uploaded_file = None
+        
+        if uploaded_file is not None:
+            # Track file upload
+            track_file_upload(uploaded_file.name, uploaded_file.size)
+            
+            # Store file info in session state for error tracking
+            st.session_state.file_uploaded = True
+            st.session_state.current_file = {
+                "name": uploaded_file.name,
+                "size": uploaded_file.size,
+                "type": uploaded_file.type
+            }
             
             st.success(f"✅ Uploaded: {uploaded_file.name}")
             
