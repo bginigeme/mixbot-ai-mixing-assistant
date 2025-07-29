@@ -10,6 +10,64 @@ from audio_analyzer import analyze_audio, generate_mix_feedback
 import numpy as np
 import librosa
 import soundfile as sf
+import time
+import json
+
+# Analytics functions
+def track_user_action(action, details=None):
+    """Track user actions for analytics"""
+    try:
+        analytics_data = {
+            "timestamp": datetime.now().isoformat(),
+            "action": action,
+            "details": details,
+            "session_id": st.session_state.get("session_id", "unknown"),
+            "page": "mixbot_main"
+        }
+        
+        # Log to file (for simple tracking)
+        with open("user_analytics.jsonl", "a") as f:
+            f.write(json.dumps(analytics_data) + "\n")
+        
+        return analytics_data
+    except Exception as e:
+        # Silently fail if analytics fails
+        pass
+
+def initialize_analytics():
+    """Initialize analytics for the session"""
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = f"session_{int(time.time())}"
+    
+    # Track page view
+    track_user_action("page_view")
+
+def track_file_upload(file_name, file_size):
+    """Track when users upload files"""
+    track_user_action("file_upload", {
+        "file_name": file_name,
+        "file_size": file_size,
+        "file_type": file_name.split(".")[-1] if "." in file_name else "unknown"
+    })
+
+def track_daw_selection(daw):
+    """Track DAW selections"""
+    track_user_action("daw_selection", {"daw": daw})
+
+def track_genre_detection(genre):
+    """Track detected genres"""
+    track_user_action("genre_detection", {"genre": genre})
+
+def track_feedback_download():
+    """Track when users download feedback"""
+    track_user_action("feedback_download")
+
+def track_analysis_completion(analysis_time, file_size):
+    """Track analysis completion"""
+    track_user_action("analysis_complete", {
+        "analysis_time_seconds": analysis_time,
+        "file_size_mb": file_size
+    })
 
 # Page configuration
 st.set_page_config(
@@ -1033,6 +1091,9 @@ def create_visualizations(metrics):
     return fig_loudness, fig_dynamic
 
 def main():
+    # Initialize analytics
+    initialize_analytics()
+    
     # Header
     st.markdown('<h1 class="main-header">🎵 Mixbot</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">AI-Powered Mixing Assistant</p>', unsafe_allow_html=True)
@@ -1047,6 +1108,10 @@ def main():
             "Cubase", "Reaper", "Studio One", "Bitwig Studio"
         ]
         selected_daw = st.selectbox("Select your DAW:", daw_options)
+        
+        # Track DAW selection
+        if selected_daw:
+            track_daw_selection(selected_daw)
         
         # Vibe/Reference input
         vibe_reference = st.text_input("Vibe/Artist Reference (optional):", 
@@ -1078,6 +1143,9 @@ def main():
         )
         
         if uploaded_file is not None:
+            # Track file upload
+            track_file_upload(uploaded_file.name, uploaded_file.size)
+            
             st.success(f"✅ Uploaded: {uploaded_file.name}")
             
             # Display file info
@@ -1091,17 +1159,29 @@ def main():
             
             # Analyze button
             if st.button("🔍 Analyze Track", type="primary"):
+                start_time = time.time()
                 with st.spinner("Analyzing your track..."):
                     # Run analysis
                     analysis_output, temp_path = load_and_analyze_audio(uploaded_file)
                     
                     if analysis_output:
+                        # Calculate analysis time
+                        analysis_time = time.time() - start_time
+                        
+                        # Track analysis completion
+                        track_analysis_completion(analysis_time, uploaded_file.size)
+                        
                         # Store results in session state
                         st.session_state.analysis_results = analysis_output
                         st.session_state.feedback_generated = True
                         
                         # Extract metrics
                         metrics = extract_metrics_from_output(analysis_output)
+                        
+                        # Track genre detection
+                        if vibe_reference:
+                            genre_info = analyze_genre_characteristics(metrics.get('tempo', 120), vibe_reference, metrics)
+                            track_genre_detection(genre_info['genre'])
                         
                         # Generate feedback
                         feedback_sections = generate_gpt_feedback(metrics, selected_daw, vibe_reference)
@@ -1225,12 +1305,17 @@ Vibe/Reference: {vibe_reference if vibe_reference else 'Not specified'}
             feedback_text += f"\n{content}\n"
         
         # Download button
-        st.download_button(
+        download_clicked = st.download_button(
             label="📥 Download Feedback Report (.txt)",
             data=feedback_text,
             file_name=f"mixbot_feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
             mime="text/plain"
         )
+        
+        # Track download (note: this will track every time the button is rendered)
+        # For more accurate tracking, you'd need a custom solution
+        if download_clicked:
+            track_feedback_download()
 
 if __name__ == "__main__":
     main() 
