@@ -161,3 +161,68 @@ def get_mix_recommendations(
         "genre": genre,
         "summary": f"{daw_note} {genre_note} {len(issues)} issue(s) found.".strip(),
     }
+
+
+# Krumhansl-Schmuckler key profiles
+_MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
+                            2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+_MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53,
+                            2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+
+_NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F",
+               "F#", "G", "G#", "A", "A#", "B"]
+
+
+def detect_key(file_path: str) -> dict:
+    """
+    Detect the musical key of an audio file using chroma features
+    and Krumhansl-Schmuckler key profiles.
+
+    Returns the estimated key, mode (major/minor), confidence score,
+    and the top 3 candidate keys so Claude can give nuanced advice.
+    """
+    try:
+        audio, sr = librosa.load(file_path, sr=None)
+    except Exception as e:
+        return {"error": f"Could not load audio: {e}"}
+
+    # Compute chromagram
+    chroma = librosa.feature.chroma_cqt(y=audio, sr=sr)
+    chroma_mean = np.mean(chroma, axis=1)  # shape: (12,)
+
+    # Correlate against all 24 key profiles (12 major + 12 minor)
+    scores = {}
+    for i, note in enumerate(_NOTE_NAMES):
+        major_profile = np.roll(_MAJOR_PROFILE, i)
+        minor_profile = np.roll(_MINOR_PROFILE, i)
+        scores[f"{note} major"] = float(np.corrcoef(chroma_mean, major_profile)[0, 1])
+        scores[f"{note} minor"] = float(np.corrcoef(chroma_mean, minor_profile)[0, 1])
+
+    # Sort by score
+    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    best_key, best_score = ranked[0]
+    top_3 = [{"key": k, "confidence": round(s, 3)} for k, s in ranked[:3]]
+
+    key_name, mode = best_key.rsplit(" ", 1)
+
+    # Relative key (e.g. C major <-> A minor)
+    note_idx = _NOTE_NAMES.index(key_name)
+    if mode == "major":
+        relative_idx = (note_idx - 3) % 12
+        relative_key = f"{_NOTE_NAMES[relative_idx]} minor"
+    else:
+        relative_idx = (note_idx + 3) % 12
+        relative_key = f"{_NOTE_NAMES[relative_idx]} major"
+
+    return {
+        "key": key_name,
+        "mode": mode,
+        "full_key": best_key,
+        "confidence": round(best_score, 3),
+        "relative_key": relative_key,
+        "top_3_candidates": top_3,
+        "autotune_recommendation": (
+            f"Set Autotune/Melodyne to {key_name} {mode}. "
+            f"If that sounds off, try the relative key: {relative_key}."
+        ),
+    }

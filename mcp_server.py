@@ -21,7 +21,7 @@ Requires Python 3.10+ (use the mcp_env virtualenv in this project).
 """
 
 from mcp.server.fastmcp import FastMCP
-from audio_tools import analyze_audio_file, get_spectral_features, get_mix_recommendations
+from audio_tools import analyze_audio_file, get_spectral_features, get_mix_recommendations, detect_key
 
 mcp = FastMCP(
     "MixBot",
@@ -85,6 +85,20 @@ def mix_recommendations(
     if "error" in metrics:
         return metrics
     return get_mix_recommendations(metrics, daw=daw, genre=genre)
+
+
+@mcp.tool()
+def key_detection(file_path: str) -> dict:
+    """
+    Detect the musical key of an audio file.
+
+    Returns the estimated key, mode (major/minor), confidence score,
+    relative key, top 3 candidates, and a direct Autotune recommendation.
+
+    Args:
+        file_path: Absolute path to the audio file (.wav or .mp3).
+    """
+    return detect_key(file_path)
 
 
 if __name__ == "__main__":
