@@ -347,6 +347,8 @@ if 'ai_feedback' not in st.session_state:
     st.session_state.ai_feedback = None
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
+if 'audio_file_path' not in st.session_state:
+    st.session_state.audio_file_path = None
 
 def load_and_analyze_audio(uploaded_file, use_stems=False):
     """Load uploaded audio file and run analysis with optional stem separation"""
@@ -450,12 +452,9 @@ def load_and_analyze_audio(uploaded_file, use_stems=False):
             raise analysis_error
         finally:
             sys.stdout = old_stdout
-            # Clean up temporary file
-            try:
-                os.unlink(tmp_file_path)
-            except Exception as cleanup_error:
-                track_error("file_cleanup_failed", str(cleanup_error))
-        
+            # Temp file is kept alive so the AI agent can call tools on it.
+            # It is cleaned up when new analysis starts (see below).
+
         return analysis_output, tmp_file_path
         
     except Exception as e:
@@ -1750,10 +1749,18 @@ def main_app_content():
             # Analyze button
             if st.button("🔍 Analyze Track", type="primary"):
                 start_time = time.time()
+                # Clean up previous temp file before creating a new one
+                if st.session_state.audio_file_path:
+                    try:
+                        os.unlink(st.session_state.audio_file_path)
+                    except Exception:
+                        pass
+                    st.session_state.audio_file_path = None
                 try:
                     with st.spinner("Analyzing your track..."):
                         # Run analysis
                         analysis_output, temp_path = load_and_analyze_audio(uploaded_file, use_stems=use_stem_analysis)
+                        st.session_state.audio_file_path = temp_path
                         
                         if analysis_output:
                             # Calculate analysis time
@@ -1808,14 +1815,15 @@ def main_app_content():
                             st.session_state.feedback_sections = feedback_sections
                             st.session_state.metrics = metrics
 
-                            # Generate AI (Claude) feedback if available
+                            # Generate AI (Claude) feedback using the agentic tool-use loop
                             if ai_agent.is_available():
-                                with st.spinner("🤖 Getting Claude's take on your mix..."):
+                                with st.spinner("🤖 Claude is analyzing your mix..."):
                                     ai_fb = ai_agent.generate_ai_feedback(
                                         metrics=metrics,
                                         daw=selected_daw,
                                         vibe=vibe_reference,
                                         stem_data=st.session_state.stem_results or None,
+                                        file_path=st.session_state.audio_file_path,
                                     )
                                     st.session_state.ai_feedback = ai_fb
                                     st.session_state.chat_history = []
@@ -2062,6 +2070,7 @@ def main_app_content():
                             daw=selected_daw,
                             vibe=vibe_reference,
                             chat_history=st.session_state.chat_history[:-1],
+                            file_path=st.session_state.audio_file_path,
                         )
                     st.session_state.chat_history.append({"role": "assistant", "content": reply})
                     st.rerun()
