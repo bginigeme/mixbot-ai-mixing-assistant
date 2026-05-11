@@ -25,7 +25,16 @@ _client = None
 
 try:
     import anthropic
+
+    # Check .env / environment variable first, then Streamlit secrets (Cloud deployment)
     _api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not _api_key:
+        try:
+            import streamlit as st
+            _api_key = st.secrets.get("ANTHROPIC_API_KEY")
+        except Exception:
+            pass
+
     if _api_key:
         _client = anthropic.Anthropic(api_key=_api_key)
         _ANTHROPIC_AVAILABLE = True
