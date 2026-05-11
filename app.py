@@ -349,6 +349,8 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'audio_file_path' not in st.session_state:
     st.session_state.audio_file_path = None
+if 'key_results' not in st.session_state:
+    st.session_state.key_results = None
 
 def load_and_analyze_audio(uploaded_file, use_stems=False):
     """Load uploaded audio file and run analysis with optional stem separation"""
@@ -1815,6 +1817,14 @@ def main_app_content():
                             st.session_state.feedback_sections = feedback_sections
                             st.session_state.metrics = metrics
 
+                            # Run key detection while file is still available
+                            if st.session_state.audio_file_path and os.path.exists(st.session_state.audio_file_path):
+                                try:
+                                    from audio_tools import detect_key
+                                    st.session_state.key_results = detect_key(st.session_state.audio_file_path)
+                                except Exception:
+                                    st.session_state.key_results = None
+
                             # Generate AI (Claude) feedback using the agentic tool-use loop
                             if ai_agent.is_available():
                                 with st.spinner("🤖 Claude is analyzing your mix..."):
@@ -2078,6 +2088,7 @@ def main_app_content():
                             vibe=vibe_reference,
                             chat_history=st.session_state.chat_history[:-1],
                             file_path=live_path,
+                            key_results=st.session_state.key_results,
                         )
                     st.session_state.chat_history.append({"role": "assistant", "content": reply})
                     st.rerun()

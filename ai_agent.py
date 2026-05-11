@@ -293,6 +293,7 @@ def chat_with_agent(
     vibe: str,
     chat_history: list,
     file_path: Optional[str] = None,
+    key_results: Optional[dict] = None,
 ) -> str:
     """
     Conversational follow-up using the agentic tool-use loop.
@@ -312,10 +313,19 @@ def chat_with_agent(
     tempo = metrics.get("tempo", 0)
     clipping = metrics.get("clipping", False)
 
+    key_note = ""
+    if key_results and "full_key" in key_results:
+        key_note = (
+            f", Key: {key_results['full_key']} "
+            f"(confidence: {key_results.get('confidence', '?')}, "
+            f"relative: {key_results.get('relative_key', '?')})"
+        )
+
     context_note = (
         f"[Track context — {tempo:.0f} BPM, RMS {rms_db:.1f} dB, "
         f"Peak {peak_db:.1f} dB, Clipping: {'yes' if clipping else 'no'}, "
         f"DAW: {daw or 'unknown'}, Vibe: {vibe or 'not specified'}"
+        + key_note
         + (f", file: {file_path}" if file_path else "")
         + "]"
     )
