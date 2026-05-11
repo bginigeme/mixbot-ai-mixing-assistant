@@ -58,7 +58,7 @@ def _get_client():
 
     return _client
 
-from audio_tools import analyze_audio_file, get_spectral_features, get_mix_recommendations
+from audio_tools import analyze_audio_file, get_spectral_features, get_mix_recommendations, detect_key
 
 MODEL = "claude-sonnet-4-5"
 
@@ -68,8 +68,9 @@ across all genres. You have tools to analyze audio files directly.
 Your workflow:
 1. Always call analyze_audio first to get core metrics.
 2. Call spectral_features when you need frequency balance details.
-3. Call mix_recommendations to get a structured issue/suggestion list.
-4. Synthesize everything into clear, actionable feedback.
+3. Call key_detection when the user asks about musical key, Autotune, Melodyne, pitch correction, or harmony.
+4. Call mix_recommendations to get a structured issue/suggestion list.
+5. Synthesize everything into clear, actionable feedback.
 
 Your feedback should be:
 - Specific and technical but accessible to intermediate producers
@@ -119,6 +120,24 @@ TOOLS = [
         },
     },
     {
+        "name": "key_detection",
+        "description": (
+            "Detect the musical key of an audio file using chroma features. "
+            "Returns key, mode (major/minor), confidence, relative key, "
+            "top 3 candidates, and a direct Autotune/Melodyne recommendation."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "Absolute path to the audio file (.wav or .mp3).",
+                }
+            },
+            "required": ["file_path"],
+        },
+    },
+    {
         "name": "mix_recommendations",
         "description": (
             "Run analysis on an audio file and return structured mixing "
@@ -154,6 +173,8 @@ def _execute_tool(tool_name: str, tool_input: dict) -> str:
             result = analyze_audio_file(tool_input["file_path"])
         elif tool_name == "spectral_features":
             result = get_spectral_features(tool_input["file_path"])
+        elif tool_name == "key_detection":
+            result = detect_key(tool_input["file_path"])
         elif tool_name == "mix_recommendations":
             result = get_mix_recommendations(
                 analyze_audio_file(tool_input["file_path"]),
