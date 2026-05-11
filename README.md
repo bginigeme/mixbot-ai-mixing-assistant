@@ -1,222 +1,178 @@
-# Mixbot - AI Mixing Assistant
+# MixBot — AI Mixing Assistant
 
-A professional AI-powered mixing assistant that analyzes audio files and provides detailed mixing and mastering feedback. Available as both a command-line tool and a beautiful web application.
+An AI-powered audio mixing engineer built with Claude, MCP, and Python DSP.
 
-## 🎵 Features
+Upload a track → MixBot analyzes it → Claude calls your audio tools autonomously → you get professional mixing feedback and can chat about your mix.
 
-- **Audio Analysis**: Comprehensive analysis of duration, silence, RMS, tempo, and clipping
-- **Professional Mixing Feedback**: DAW-specific recommendations from a virtual mixing engineer
-- **Web Interface**: Beautiful Streamlit UI for easy interaction
-- **Command Line Tool**: Powerful CLI for batch processing and automation
-- **Visualizations**: Interactive charts and meters for audio metrics
-- **Downloadable Reports**: Export feedback as text files for reference
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                  Streamlit UI                    │
+│   Upload → Analyze → AI Feedback → Chat          │
+└────────────────────┬────────────────────────────┘
+                     │
+         ┌───────────▼───────────┐
+         │     AI Agent          │
+         │  (Claude tool-use)    │
+         │                       │
+         │  1. analyze_audio()   │
+         │  2. spectral_features │
+         │  3. mix_recommendations│
+         └───────────┬───────────┘
+                     │ calls
+         ┌───────────▼───────────┐
+         │     MCP Server        │  ◄── Also usable from Cursor
+         │   (mcp_server.py)     │       and Claude Desktop
+         │                       │
+         │  • Audio DSP (librosa)│
+         │  • Spectral analysis  │
+         │  • Stem separation    │
+         └───────────────────────┘
+```
+
+Claude doesn't just read pre-packaged numbers — it **calls the tools itself**, reasons across results, and writes the feedback. The same tools are exposed as a live **MCP server** that any MCP-compatible client (Cursor, Claude Desktop) can call directly.
+
+---
 
 ## Features
 
-- **Duration Analysis**: Calculate the total duration of the audio track
-- **Silence Detection**: Identify periods where the volume is below a threshold
-- **RMS Calculation**: Compute the Root Mean Square (loudness) of the track
-- **Tempo Estimation**: Estimate the tempo (BPM) using librosa's beat tracking
-- **Clipping Detection**: Flag if any clipping is likely based on RMS or peak levels
-- **Professional Mixing Feedback**: Get detailed mixing and mastering recommendations
-- **Additional Metrics**: Sample rate, number of samples, and dynamic range
+- **Agentic AI Feedback** — Claude runs an autonomous tool-use loop: calls `analyze_audio`, `spectral_features`, and `mix_recommendations` in sequence, then synthesizes a full mixing report
+- **Conversational Chat** — follow-up Q&A with the AI while your track's context is held in memory
+- **MCP Server** — exposes your audio tools over the Model Context Protocol; connect to Cursor or Claude Desktop and analyze tracks from inside your IDE
+- **Stem Separation** — separates audio into vocals, drums, bass, and other using Demucs (falls back to librosa HPSS + band filtering)
+- **Per-Stem Analysis** — vocal clarity, sibilance, pitch range, kick punch, snare presence, bass weight, sub-bass energy
+- **Spectral Analysis** — frequency band energy (sub-bass through air), centroid, rolloff, bandwidth
+- **DAW-Specific Recommendations** — tailored plugin suggestions for FL Studio, Ableton, Logic Pro, Pro Tools, Cubase, Reaper, Studio One, Bitwig, and DJ software
+- **Genre-Aware** — different loudness targets and recommendations for hip-hop, electronic, rock, pop, acoustic
+- **Analytics & Error Tracking** — session analytics and structured error logging built in
 
-## 🚀 Quick Start
+---
 
-### Web Application (Recommended)
+## Tech Stack
 
-1. **Install dependencies:**
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Streamlit |
+| AI / LLM | Anthropic Claude (tool-use API) |
+| MCP Protocol | FastMCP (Python MCP SDK) |
+| Audio DSP | librosa, soundfile, numpy, scipy |
+| Stem Separation | Demucs (htdemucs model) + librosa HPSS fallback |
+| Visualizations | Plotly |
+
+---
+
+## Quick Start
+
+### 1. Clone and install
+
 ```bash
+git clone https://github.com/bginigeme/mixbot-ai-mixing-assistant.git
+cd mixbot-ai-mixing-assistant
 pip install -r requirements.txt
 ```
 
-2. **Launch the web app:**
-```bash
-python run_app.py
-```
-
-3. **Open your browser** and go to `http://localhost:8501`
-
-4. **Upload your audio file**, select your DAW, and get instant feedback!
-
-### Command Line Tool
-
-For batch processing or automation:
+### 2. Add your API key
 
 ```bash
-python audio_analyzer.py <audio_file_path>
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
+# Get one at https://console.anthropic.com/
 ```
 
-### Examples
+### 3. Run
 
 ```bash
-# Web app (recommended)
-python run_app.py
-
-# Command line analysis
-python audio_analyzer.py song.wav
-python audio_analyzer.py music.mp3
-python audio_analyzer.py audio.flac
+STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll streamlit run app.py
 ```
 
-## 🎛️ Web Application Features
+Open **http://localhost:8501**
 
-### Upload & Analysis
-- **Drag & Drop**: Easy file upload for WAV and MP3 files
-- **DAW Selection**: Choose from 8 popular DAWs for specific recommendations
-- **Vibe Input**: Add artist references or genre vibes for personalized feedback
-- **Real-time Analysis**: Instant processing with progress indicators
+---
 
-### Visual Feedback
-- **Interactive Charts**: Loudness meters and dynamic range gauges
-- **Color-coded Metrics**: Green (good), Orange (warning), Red (critical)
-- **Expandable Sections**: Organized feedback in collapsible sections
-- **Quick Stats**: Key metrics displayed prominently
+## MCP Server Setup (Cursor / Claude Desktop)
 
-### Professional Feedback
-- **Genre-Aware Analysis**: Automatic genre detection and tailored recommendations
-- **Overall Assessment**: High-level track evaluation with genre context
-- **Loudness Analysis**: Genre-specific RMS targets and recommendations
-- **Clipping Detection**: Critical warnings and solutions
-- **EQ Recommendations**: Genre-specific frequency suggestions with DAW plugins
-- **Compression Tips**: Genre-appropriate dynamic range control with DAW plugins
-- **Effects Guidance**: Reverb, delay, and saturation tips with DAW plugins
-- **Third-Party Plugin Recommendations**: Professional plugin suggestions
-- **Mastering Prep**: Export and quality check recommendations
+The MCP server runs in a separate Python 3.10+ environment.
 
-### Export & Share
-- **Download Reports**: Save feedback as timestamped text files
-- **Session Persistence**: Results saved during browser session
-- **Professional Formatting**: Clean, readable report structure
+```bash
+# Install uv (fast Python environment manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-## Supported Formats
-
-The script supports various audio formats including:
-- WAV
-- MP3
-- FLAC
-- OGG
-- And other formats supported by librosa
-
-## 📦 Dependencies
-
-### Core Audio Analysis
-- `librosa`: Professional audio analysis library
-- `soundfile`: Audio file I/O and processing
-- `numpy`: Numerical computing and array operations
-- `scipy`: Scientific computing (required by librosa)
-
-### Web Application
-- `streamlit`: Modern web app framework
-- `plotly`: Interactive data visualizations
-- `pandas`: Data manipulation and analysis
-
-## Example Output
-
-```
-🎵 MIXING & MASTERING FEEDBACK
-==================================================
-📊 ANALYSIS SUMMARY:
-   • RMS Level: -13.7 dB
-   • Peak Level: -0.3 dB
-   • Dynamic Range: 13.4 dB
-   • Tempo: 129 BPM
-   • Silence: 6.6% of track
-
-🔊 LOUDNESS & DYNAMICS:
-   ✅ RMS level is in a good range for mastering
-   ⚠️  Peak level is very close to clipping
-      → Reduce peak levels by 1-2 dB
-      → Check for transients that need taming
-
-🎚️ CLIPPING & DISTORTION:
-   ✅ No clipping detected - good headroom management
-
-🎛️ SPECIFIC RECOMMENDATIONS:
-   EQ Suggestions:
-      → High-pass filter at 20-30 Hz to remove rumble
-      → Cut 200-400 Hz if mix sounds muddy
-      → Boost 2-4 kHz for presence and clarity
-      → High-shelf 8-12 kHz for air and brightness
-   Compression:
-      → Use gentle compression (2:1 ratio) to control dynamics
-      → Consider parallel compression for thickness
-      → Use side-chain compression to create space
-   Effects:
-      → Add subtle reverb to glue elements together
-      → Use delay to create space and movement
-      → Consider saturation for warmth and character
-
-🎚️ MASTERING PREPARATION:
-   → Leave 1-2 dB headroom for mastering engineer
-   → Ensure mix translates on different speakers
-   → Check mono compatibility
-   → Consider using reference tracks for comparison
+# Create the MCP environment
+uv venv mcp_env --python 3.13
+uv pip install -r mcp_requirements.txt --python mcp_env/bin/python
 ```
 
-## 📁 Project Structure
+Then add to your Cursor MCP config (`Settings → MCP → Edit config`):
+
+```json
+{
+  "mcpServers": {
+    "mixbot": {
+      "command": "/absolute/path/to/mixbot/mcp_env/bin/python",
+      "args": ["/absolute/path/to/mixbot/mcp_server.py"]
+    }
+  }
+}
+```
+
+Now you can ask Cursor: *"Analyze `/path/to/track.wav` and tell me what's wrong with the mix"* — and it will call your tools directly.
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `analyze_audio` | Core metrics: RMS, peak, dynamic range, tempo, clipping, silence |
+| `spectral_features` | Frequency band energies, centroid, bandwidth, rolloff |
+| `mix_recommendations` | Structured issues + suggestions list, DAW and genre aware |
+
+---
+
+## Project Structure
 
 ```
 mixbot/
-├── app.py                 # Streamlit web application
-├── run_app.py            # App launcher script
-├── audio_analyzer.py     # Core analysis engine
-├── test_audio_analyzer.py # Test script
-├── requirements.txt      # Python dependencies
-├── README.md            # Documentation
-└── venv/                # Virtual environment
+├── app.py                  # Streamlit web application
+├── ai_agent.py             # Claude agentic loop (tool-use)
+├── mcp_server.py           # FastMCP server (MCP protocol)
+├── audio_tools.py          # Shared DSP functions (used by agent + MCP)
+├── audio_analyzer.py       # Core analysis engine
+├── stem_separator.py       # Stem separation (Demucs + librosa fallback)
+├── requirements.txt        # Main app dependencies (Python 3.9+)
+├── mcp_requirements.txt    # MCP server dependencies (Python 3.10+)
+├── packages.txt            # System packages for Streamlit Cloud
+└── .env.example            # Environment variable template
 ```
 
-## 🎯 Use Cases
+---
 
-- **Independent Artists**: Get professional mixing feedback without hiring an engineer
-- **Music Producers**: Analyze tracks and get DAW-specific recommendations
-- **Audio Engineers**: Use as a second opinion for mixing decisions
-- **Students**: Learn mixing techniques through AI-guided feedback
-- **Content Creators**: Ensure audio quality for videos and podcasts
+## Streamlit Cloud Deployment
 
-## 🎛️ DAW-Specific Plugin Recommendations
+1. Fork or push to GitHub
+2. Go to [share.streamlit.io](https://share.streamlit.io) → New app
+3. Select your repo, branch `main` (or `development`), entry point `app.py`
+4. In **Advanced settings → Secrets**, add:
 
-Mixbot provides detailed plugin recommendations for 8 popular DAWs:
+```toml
+ANTHROPIC_API_KEY = "your_key_here"
+```
 
-### Supported DAWs
-- **FL Studio**: Fruity plugins, Maximus, built-in effects
-- **Ableton Live**: EQ Eight, Glue Compressor, built-in effects
-- **Logic Pro**: Channel EQ, Vintage compressors, Space Designer
-- **Pro Tools**: Dyn3 series, Channel Strip, D-Verb
-- **Cubase**: Frequency, StudioEQ, Roomworks
-- **Reaper**: ReaEQ, ReaComp, ReaVerb
-- **Studio One**: Pro EQ, Channel Strip, Room Reverb
-- **Bitwig Studio**: EQ+, Multiband, built-in effects
+5. Deploy — the app works without Demucs/PyTorch on Cloud (librosa fallback handles stem separation)
 
-### Plugin Categories
-- **EQ Plugins**: Parametric, graphic, and surgical EQs
-- **Compression Plugins**: Classic, multiband, and vintage compressors
-- **Effects Plugins**: Reverb, delay, modulation, and saturation
-- **Third-Party Recommendations**: Professional plugins from leading manufacturers
+---
 
-## 🎵 Genre-Aware Analysis
+## Resume Description
 
-Mixbot automatically detects your track's genre and provides tailored recommendations:
-
-### Supported Genres
-- **Hip-Hop/Rap**: Heavy bass, punchy drums, clear vocals, wide stereo
-- **Electronic/Dance**: Punchy kick, wide stereo, bright highs, tight compression
-- **Rock**: Guitar presence, punchy drums, vocal clarity, natural dynamics
-- **Pop**: Vocal forward, bright mix, wide stereo, consistent levels
-- **Acoustic/Folk**: Natural dynamics, warm tones, minimal processing, space
-
-### Genre-Specific Features
-- **Loudness Targets**: Different RMS targets for each genre (Hip-Hop: -10dB, Electronic: -8dB, etc.)
-- **EQ Focus**: Genre-appropriate frequency recommendations
-- **Compression Styles**: Genre-specific compression techniques and settings
-- **Characteristic Detection**: Automatic identification of genre characteristics
-
-## 📝 Notes
-
-- **Silence Detection**: Uses -40 dB threshold with 0.1s minimum duration
-- **Tempo Estimation**: Works best with rhythmic music and clear beats
-- **Clipping Detection**: Checks both peak levels and flat peak patterns
-- **Format Support**: Automatically handles different sample rates and audio formats
-- **Feedback Quality**: Based on industry standards and professional mixing practices
-- **DAW Support**: Tailored recommendations for 8 popular DAWs 
+```
+MixBot — AI Mixing Assistant
+• Built a custom MCP server exposing audio DSP tools as callable tools
+  for AI agents via the Model Context Protocol (Cursor, Claude Desktop)
+• Implemented an agentic Claude loop (Anthropic tool-use API) that
+  autonomously calls analyze_audio → spectral_features → mix_recommendations
+  and synthesizes professional mixing feedback
+• Full-stack: Streamlit UI, Python DSP (librosa), Demucs stem separation,
+  spectral analysis, conversational AI chat, session analytics
+• Stack: Python, Anthropic Claude API, FastMCP, librosa, Demucs, Streamlit
+```

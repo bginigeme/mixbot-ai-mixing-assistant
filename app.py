@@ -7,11 +7,13 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from audio_analyzer import analyze_audio, generate_mix_feedback
+import stem_separator
 import numpy as np
 import librosa
 import soundfile as sf
 import time
 import json
+import ai_agent
 
 # Analytics functions
 def track_user_action(action, details=None):
@@ -339,9 +341,17 @@ if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 if 'feedback_generated' not in st.session_state:
     st.session_state.feedback_generated = False
+if 'stem_results' not in st.session_state:
+    st.session_state.stem_results = {}
+if 'ai_feedback' not in st.session_state:
+    st.session_state.ai_feedback = None
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+if 'audio_file_path' not in st.session_state:
+    st.session_state.audio_file_path = None
 
-def load_and_analyze_audio(uploaded_file):
-    """Load uploaded audio file and run analysis"""
+def load_and_analyze_audio(uploaded_file, use_stems=False):
+    """Load uploaded audio file and run analysis with optional stem separation"""
     try:
         # Save uploaded file to temporary location
         with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp_file:
@@ -357,9 +367,80 @@ def load_and_analyze_audio(uploaded_file):
         sys.stdout = captured_output = StringIO()
         
         try:
-            # Run analysis
-            analyze_audio(tmp_file_path)
-            analysis_output = captured_output.getvalue()
+            if use_stems:
+                # Run stem separation and analysis
+                st.info("🎵 **Stem Analysis Mode**: This will take 30-90 seconds for detailed analysis of vocals, drums, bass, and other elements.")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # Update progress for different stages
+                status_text.text("Loading audio file...")
+                progress_bar.progress(10)
+                
+                status_text.text("Separating audio into stems (this is the longest step)...")
+                progress_bar.progress(20)
+                
+                # Run stem separation
+                try:
+                    # Create a simple wrapper since the function isn't exporting properly
+                    with stem_separator.StemSeparator(stems=4) as separator:
+                        # Separate audio into stems
+                        stem_paths = separator.separate_audio(tmp_file_path)
+                        
+                        # Analyze each stem
+                        stem_analyses = {}
+                        for stem_name, stem_path in stem_paths.items():
+                            stem_analysis = separator.analyze_stem(stem_path, stem_name)
+                            stem_analyses[stem_name] = stem_analysis
+                        
+                        # Combine results
+                        stem_result = {
+                            'overall': {
+                                'stems_analyzed': len(stem_analyses),
+                                'separation_successful': True,
+                                'stem_paths': stem_paths
+                            },
+                            'stems': stem_analyses
+                        }
+                except Exception as e:
+                    stem_result = {
+                        'overall': {
+                            'stems_analyzed': 0,
+                            'separation_successful': False,
+                            'error': str(e)
+                        },
+                        'stems': {}
+                    }
+                
+                progress_bar.progress(80)
+                status_text.text("Analyzing individual stems...")
+                
+                # Store stem results in session state
+                st.session_state.stem_results = stem_result.get('stems', {})
+                
+                # Run basic analysis as well
+                analyze_audio(tmp_file_path)
+                analysis_output = captured_output.getvalue()
+                
+                progress_bar.progress(100)
+                status_text.text("Analysis complete!")
+                
+            else:
+                # Run basic analysis only
+                st.info("🔍 **Basic Analysis Mode**: Quick analysis (5-15 seconds)")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                status_text.text("Analyzing audio...")
+                progress_bar.progress(50)
+                
+                analyze_audio(tmp_file_path)
+                analysis_output = captured_output.getvalue()
+                st.session_state.stem_results = {}
+                
+                progress_bar.progress(100)
+                status_text.text("Analysis complete!")
+                
         except Exception as analysis_error:
             # Track analysis-specific errors
             track_analysis_error(
@@ -371,24 +452,14 @@ def load_and_analyze_audio(uploaded_file):
             raise analysis_error
         finally:
             sys.stdout = old_stdout
-            # Clean up temporary file
-            try:
-                os.unlink(tmp_file_path)
-            except Exception as cleanup_error:
-                track_error("file_cleanup_failed", str(cleanup_error))
-        
+            # Temp file is kept alive so the AI agent can call tools on it.
+            # It is cleaned up when new analysis starts (see below).
+
         return analysis_output, tmp_file_path
         
     except Exception as e:
-        # Track file processing errors
-        track_file_processing_error(
-            file_name=uploaded_file.name,
-            file_size=uploaded_file.size,
-            error_type="file_processing_failed",
-            error_message=str(e)
-        )
-        st.error(f"Error analyzing audio: {str(e)}")
-        return None, None
+        track_error("file_processing_failed", str(e))
+        raise
 
 def extract_metrics_from_output(analysis_output):
     """Extract key metrics from analysis output"""
@@ -1541,6 +1612,27 @@ def main_app_content():
                                      placeholder="e.g., 'The Weeknd vibes' or 'Dark trap'",
                                      help="Add genre or artist reference for personalized feedback")
         
+        # Stem Analysis Toggle
+        st.markdown("---")
+        st.markdown("### 🎵 Analysis Options")
+        
+        use_stem_analysis = st.checkbox(
+            "🎤 Enable Stem Separation", 
+            value=False,
+            help="Separate track into vocals, drums, bass, and other instruments for detailed analysis (takes longer but provides more insights)"
+        )
+        
+        if use_stem_analysis:
+            st.info("""
+            **Stem Analysis Features:**
+            - 🎤 **Vocals:** Pitch range, clarity, sibilance
+            - 🥁 **Drums:** Kick punch, snare presence, tightness  
+            - 🎸 **Bass:** Weight, clarity, sub-bass
+            - 🎹 **Other:** Harmonic content, stereo width
+            """)
+        else:
+            st.info("**Basic Analysis:** Duration, loudness, tempo, clipping detection")
+        
         st.markdown("---")
         st.markdown("### 📊 About")
         st.markdown("""
@@ -1657,10 +1749,18 @@ def main_app_content():
             # Analyze button
             if st.button("🔍 Analyze Track", type="primary"):
                 start_time = time.time()
+                # Clean up previous temp file before creating a new one
+                if st.session_state.audio_file_path:
+                    try:
+                        os.unlink(st.session_state.audio_file_path)
+                    except Exception:
+                        pass
+                    st.session_state.audio_file_path = None
                 try:
                     with st.spinner("Analyzing your track..."):
                         # Run analysis
-                        analysis_output, temp_path = load_and_analyze_audio(uploaded_file)
+                        analysis_output, temp_path = load_and_analyze_audio(uploaded_file, use_stems=use_stem_analysis)
+                        st.session_state.audio_file_path = temp_path
                         
                         if analysis_output:
                             # Calculate analysis time
@@ -1714,7 +1814,22 @@ def main_app_content():
                             # Store feedback in session state
                             st.session_state.feedback_sections = feedback_sections
                             st.session_state.metrics = metrics
-                            
+
+                            # Generate AI (Claude) feedback using the agentic tool-use loop
+                            if ai_agent.is_available():
+                                with st.spinner("🤖 Claude is analyzing your mix..."):
+                                    ai_fb = ai_agent.generate_ai_feedback(
+                                        metrics=metrics,
+                                        daw=selected_daw,
+                                        vibe=vibe_reference,
+                                        stem_data=st.session_state.stem_results or None,
+                                        file_path=st.session_state.audio_file_path,
+                                    )
+                                    st.session_state.ai_feedback = ai_fb
+                                    st.session_state.chat_history = []
+                            else:
+                                st.session_state.ai_feedback = None
+
                             st.success("✅ Analysis complete!")
                         else:
                             track_error(
@@ -1785,6 +1900,99 @@ def main_app_content():
                 st.plotly_chart(fig_loudness, use_container_width=True)
             with col2:
                 st.plotly_chart(fig_dynamic, use_container_width=True)
+        
+        # Stem Analysis Results (if available)
+        if hasattr(st.session_state, 'stem_results') and st.session_state.stem_results:
+            st.markdown('<h3 class="sub-header">🎤 Stem Analysis Results</h3>', unsafe_allow_html=True)
+            
+            stem_results = st.session_state.stem_results
+            
+            # Create columns for stem visualization
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Vocals Analysis
+                if 'vocals' in stem_results:
+                    vocals = stem_results['vocals']
+                    st.markdown("""
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                padding: 1rem; border-radius: 10px; color: white; margin-bottom: 1rem;">
+                        <h4>🎤 Vocals Analysis</h4>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col_v1, col_v2 = st.columns(2)
+                    with col_v1:
+                        st.metric("RMS Level", f"{vocals.get('rms_db', 0):.1f} dB")
+                        st.metric("Peak Level", f"{vocals.get('peak_db', 0):.1f} dB")
+                        st.metric("Vocal Clarity", f"{vocals.get('vocal_clarity', 0):.3f}")
+                    with col_v2:
+                        st.metric("Dynamic Range", f"{vocals.get('dynamic_range', 0):.1f} dB")
+                        st.metric("Sibilance", f"{vocals.get('sibilance', 0):.3f}")
+                        if 'pitch_range' in vocals:
+                            pitch_range = vocals['pitch_range']
+                            st.metric("Pitch Range", f"{pitch_range.get('min_pitch', 0):.0f}-{pitch_range.get('max_pitch', 0):.0f} Hz")
+                
+                # Bass Analysis
+                if 'bass' in stem_results:
+                    bass = stem_results['bass']
+                    st.markdown("""
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                                padding: 1rem; border-radius: 10px; color: white; margin-bottom: 1rem;">
+                        <h4>🎸 Bass Analysis</h4>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col_b1, col_b2 = st.columns(2)
+                    with col_b1:
+                        st.metric("RMS Level", f"{bass.get('rms_db', 0):.1f} dB")
+                        st.metric("Peak Level", f"{bass.get('peak_db', 0):.1f} dB")
+                        st.metric("Bass Weight", f"{bass.get('bass_weight', 0):.3f}")
+                    with col_b2:
+                        st.metric("Dynamic Range", f"{bass.get('dynamic_range', 0):.1f} dB")
+                        st.metric("Bass Clarity", f"{bass.get('bass_clarity', 0):.3f}")
+                        st.metric("Sub Bass", f"{bass.get('sub_bass', 0):.3f}")
+            
+            with col2:
+                # Drums Analysis
+                if 'drums' in stem_results:
+                    drums = stem_results['drums']
+                    st.markdown("""
+                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+                                padding: 1rem; border-radius: 10px; color: white; margin-bottom: 1rem;">
+                        <h4>🥁 Drums Analysis</h4>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        st.metric("RMS Level", f"{drums.get('rms_db', 0):.1f} dB")
+                        st.metric("Peak Level", f"{drums.get('peak_db', 0):.1f} dB")
+                        st.metric("Kick Punch", f"{drums.get('kick_punch', 0):.3f}")
+                    with col_d2:
+                        st.metric("Dynamic Range", f"{drums.get('dynamic_range', 0):.1f} dB")
+                        st.metric("Snare Presence", f"{drums.get('snare_presence', 0):.3f}")
+                        st.metric("Drum Tightness", f"{drums.get('drum_tightness', 0):.3f}")
+                
+                # Other Instruments Analysis
+                if 'other' in stem_results:
+                    other = stem_results['other']
+                    st.markdown("""
+                    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); 
+                                padding: 1rem; border-radius: 10px; color: white; margin-bottom: 1rem;">
+                        <h4>🎹 Other Instruments</h4>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col_o1, col_o2 = st.columns(2)
+                    with col_o1:
+                        st.metric("RMS Level", f"{other.get('rms_db', 0):.1f} dB")
+                        st.metric("Peak Level", f"{other.get('peak_db', 0):.1f} dB")
+                        st.metric("Harmonic Content", f"{other.get('harmonic_content', 0):.3f}")
+                    with col_o2:
+                        st.metric("Dynamic Range", f"{other.get('dynamic_range', 0):.1f} dB")
+                        st.metric("Stereo Width", f"{other.get('stereo_width', 0):.3f}")
+                        st.metric("Instrument Separation", f"{other.get('instrument_separation', 0):.3f}")
     
     # Display feedback
     if st.session_state.feedback_generated and st.session_state.feedback_sections:
@@ -1825,6 +2033,48 @@ def main_app_content():
         with st.expander("🎚️ Mastering Preparation", expanded=False):
             st.markdown(feedback_sections['mastering'])
         
+        # ── AI (Claude) Feedback ──────────────────────────────────────────
+        st.markdown("---")
+        st.markdown('<h2 class="sub-header">🤖 AI Mix Engineer Feedback</h2>', unsafe_allow_html=True)
+
+        if not ai_agent.is_available():
+            st.info(
+                "**Claude AI is not connected.**  \n"
+                "Add your `ANTHROPIC_API_KEY` to a `.env` file in the project root "
+                "and restart the app to unlock AI-powered feedback and chat."
+            )
+        else:
+            if st.session_state.ai_feedback:
+                with st.expander("📝 Claude's Full Feedback Report", expanded=True):
+                    st.markdown(st.session_state.ai_feedback)
+            else:
+                st.info("Run an analysis above to get Claude's feedback on your mix.")
+
+            # ── Chat Interface ────────────────────────────────────────────
+            st.markdown("### 💬 Ask the AI Mix Engineer")
+            st.caption("Ask follow-up questions about your mix — Claude has the full analysis context.")
+
+            for msg in st.session_state.chat_history:
+                role_label = "You" if msg["role"] == "user" else "MixBot AI"
+                with st.chat_message(msg["role"]):
+                    st.markdown(f"**{role_label}:** {msg['content']}")
+
+            if st.session_state.metrics:
+                user_input = st.chat_input("Ask about your mix (e.g. 'How do I fix the low end?')")
+                if user_input:
+                    st.session_state.chat_history.append({"role": "user", "content": user_input})
+                    with st.spinner("Thinking..."):
+                        reply = ai_agent.chat_with_agent(
+                            user_message=user_input,
+                            metrics=st.session_state.metrics,
+                            daw=selected_daw,
+                            vibe=vibe_reference,
+                            chat_history=st.session_state.chat_history[:-1],
+                            file_path=st.session_state.audio_file_path,
+                        )
+                    st.session_state.chat_history.append({"role": "assistant", "content": reply})
+                    st.rerun()
+
         # Download feedback
         st.markdown("---")
         st.markdown('<h3 class="sub-header">💾 Download Feedback</h3>', unsafe_allow_html=True)
