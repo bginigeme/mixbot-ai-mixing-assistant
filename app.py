@@ -1818,12 +1818,15 @@ def main_app_content():
                             # Generate AI (Claude) feedback using the agentic tool-use loop
                             if ai_agent.is_available():
                                 with st.spinner("🤖 Claude is analyzing your mix..."):
+                                    live_path = st.session_state.audio_file_path
+                                    if live_path and not os.path.exists(live_path):
+                                        live_path = None
                                     ai_fb = ai_agent.generate_ai_feedback(
                                         metrics=metrics,
                                         daw=selected_daw,
                                         vibe=vibe_reference,
                                         stem_data=st.session_state.stem_results or None,
-                                        file_path=st.session_state.audio_file_path,
+                                        file_path=live_path,
                                     )
                                     st.session_state.ai_feedback = ai_fb
                                     st.session_state.chat_history = []
@@ -2064,13 +2067,17 @@ def main_app_content():
                 if user_input:
                     st.session_state.chat_history.append({"role": "user", "content": user_input})
                     with st.spinner("Thinking..."):
+                        # Only pass file_path if the file still exists on disk
+                        live_path = st.session_state.audio_file_path
+                        if live_path and not os.path.exists(live_path):
+                            live_path = None
                         reply = ai_agent.chat_with_agent(
                             user_message=user_input,
                             metrics=st.session_state.metrics,
                             daw=selected_daw,
                             vibe=vibe_reference,
                             chat_history=st.session_state.chat_history[:-1],
-                            file_path=st.session_state.audio_file_path,
+                            file_path=live_path,
                         )
                     st.session_state.chat_history.append({"role": "assistant", "content": reply})
                     st.rerun()
