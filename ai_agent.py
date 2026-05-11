@@ -38,16 +38,18 @@ def _get_client():
     try:
         import anthropic
 
-        # 1. Environment variable / .env file
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = None
 
-        # 2. Streamlit secrets (Streamlit Cloud deployment)
+        # 1. Streamlit secrets (takes priority on Cloud deployment)
+        try:
+            import streamlit as st
+            api_key = st.secrets.get("ANTHROPIC_API_KEY", "").strip() or None
+        except Exception:
+            pass
+
+        # 2. Fall back to environment variable / .env file
         if not api_key:
-            try:
-                import streamlit as st
-                api_key = st.secrets.get("ANTHROPIC_API_KEY")
-            except Exception:
-                pass
+            api_key = (os.getenv("ANTHROPIC_API_KEY") or "").strip() or None
 
         if api_key:
             _client = anthropic.Anthropic(api_key=api_key)
