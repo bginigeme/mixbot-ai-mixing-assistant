@@ -1,8 +1,8 @@
-# MixBot — AI Mixing Assistant
+# Egwu — AI Mixing Assistant
 
-An AI-powered audio mixing engineer built with Claude, MCP, and Python DSP.
+An AI-powered audio mixing engineer built with Claude, MCP, and Python DSP. *Egwu* means music and dance in Igbo.
 
-Upload a track → MixBot analyzes it → Claude calls your audio tools autonomously → you get professional mixing feedback and can chat about your mix.
+Upload a track → Egwu analyzes it → Claude calls your audio tools autonomously → you get professional mixing feedback and can chat about your mix.
 
 ---
 
@@ -163,3 +163,16 @@ ANTHROPIC_API_KEY = "your_key_here"
 
 ---
 
+## Resume Description
+
+```
+Egwu — AI Mixing Assistant
+• Built a custom MCP server exposing audio DSP tools as callable tools
+  for AI agents via the Model Context Protocol (Cursor, Claude Desktop)
+• Implemented an agentic Claude loop (Anthropic tool-use API) that
+  autonomously calls analyze_audio → spectral_features → key_detection → mix_recommendations
+  and synthesizes professional mixing feedback
+• Full-stack: Streamlit UI, Python DSP (librosa), Demucs stem separation,
+  spectral analysis, conversational AI chat, session analytics
+• Stack: Python, Anthropic Claude API, FastMCP, librosa, Demucs, Streamlit
+```

@@ -379,6 +379,134 @@ def analyze_audio(file_path: str) -> None:
                          tempo, duration, silence_percentage)
 
 
+def batch_analyze(input_dir: str, output_dir: str, format: str = "txt") -> None:
+    """
+    Analyze all audio files in a directory and write reports to output_dir.
+
+    Args:
+        input_dir: Directory containing audio files (.wav, .mp3, .flac, etc.)
+        output_dir: Directory where reports will be written
+        format: Output format — 'txt' (default) or 'json'
+    """
+    import os
+    import json
+    from datetime import datetime
+    from audio_tools import analyze_audio_file, get_spectral_features, detect_key
+
+    AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".aiff", ".aif", ".ogg", ".m4a"}
+
+    if not os.path.isdir(input_dir):
+        print(f"Error: '{input_dir}' is not a directory.")
+        sys.exit(1)
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    audio_files = [
+        f for f in os.listdir(input_dir)
+        if os.path.splitext(f)[1].lower() in AUDIO_EXTENSIONS
+    ]
+
+    if not audio_files:
+        print(f"No audio files found in '{input_dir}'.")
+        sys.exit(0)
+
+    print(f"Found {len(audio_files)} audio file(s). Writing reports to '{output_dir}/'")
+    print("-" * 60)
+
+    summary_rows = []
+
+    for i, filename in enumerate(sorted(audio_files), 1):
+        file_path = os.path.join(input_dir, filename)
+        stem = os.path.splitext(filename)[0]
+        print(f"[{i}/{len(audio_files)}] Analyzing: {filename}")
+
+        try:
+            metrics   = analyze_audio_file(file_path)
+            spectral  = get_spectral_features(file_path)
+            key_info  = detect_key(file_path)
+
+            if format == "json":
+                report = {
+                    "file": filename,
+                    "analyzed_at": datetime.now().isoformat(),
+                    "metrics": metrics,
+                    "spectral": spectral,
+                    "key": key_info,
+                }
+                out_path = os.path.join(output_dir, f"{stem}_report.json")
+                with open(out_path, "w") as f:
+                    json.dump(report, f, indent=2)
+            else:
+                lines = [
+                    f"MixBot Analysis Report",
+                    f"File   : {filename}",
+                    f"Date   : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    "=" * 60,
+                    "",
+                    "CORE METRICS",
+                    f"  Duration      : {metrics.get('duration_seconds', 0):.1f}s "
+                    f"({metrics.get('duration_minutes', 0):.2f} min)",
+                    f"  Tempo         : {metrics.get('tempo_bpm', 0):.1f} BPM",
+                    f"  RMS Level     : {metrics.get('rms_db', 0):.1f} dB",
+                    f"  Peak Level    : {metrics.get('peak_db', 0):.1f} dB",
+                    f"  Dynamic Range : {metrics.get('dynamic_range_db', 0):.1f} dB",
+                    f"  Clipping      : {'YES ⚠️' if metrics.get('is_clipped') else 'No'}",
+                    f"  Silence       : {metrics.get('silence_percentage', 0):.1f}%",
+                    "",
+                    "KEY DETECTION",
+                    f"  Key           : {key_info.get('full_key', 'Unknown')} "
+                    f"(confidence: {key_info.get('confidence', 0):.2f})",
+                    f"  Relative Key  : {key_info.get('relative_key', 'Unknown')}",
+                    f"  Autotune      : {key_info.get('autotune_recommendation', 'N/A')}",
+                    "",
+                    "SPECTRAL BALANCE",
+                    f"  Sub-Bass (<80Hz)   : {spectral.get('sub_bass_energy', 0):.4f}",
+                    f"  Bass (80-250Hz)    : {spectral.get('bass_energy', 0):.4f}",
+                    f"  Low-Mid (250-500Hz): {spectral.get('low_mid_energy', 0):.4f}",
+                    f"  Mid (500-2kHz)     : {spectral.get('mid_energy', 0):.4f}",
+                    f"  High-Mid (2-6kHz)  : {spectral.get('high_mid_energy', 0):.4f}",
+                    f"  Air (6kHz+)        : {spectral.get('air_energy', 0):.4f}",
+                    "",
+                ]
+                out_path = os.path.join(output_dir, f"{stem}_report.txt")
+                with open(out_path, "w") as f:
+                    f.write("\n".join(lines))
+
+            summary_rows.append({
+                "file": filename,
+                "bpm": metrics.get("tempo_bpm", 0),
+                "rms_db": metrics.get("rms_db", 0),
+                "peak_db": metrics.get("peak_db", 0),
+                "clipping": metrics.get("is_clipped", False),
+                "key": key_info.get("full_key", "Unknown"),
+                "status": "OK",
+            })
+            print(f"         → {os.path.basename(out_path)}")
+
+        except Exception as e:
+            print(f"         ⚠ Error: {e}")
+            summary_rows.append({"file": filename, "status": f"ERROR: {e}"})
+
+    # Write summary CSV
+    summary_path = os.path.join(output_dir, "summary.csv")
+    with open(summary_path, "w") as f:
+        f.write("file,bpm,rms_db,peak_db,clipping,key,status\n")
+        for row in summary_rows:
+            f.write(
+                f"{row['file']},"
+                f"{row.get('bpm', '')},"
+                f"{row.get('rms_db', '')},"
+                f"{row.get('peak_db', '')},"
+                f"{row.get('clipping', '')},"
+                f"{row.get('key', '')},"
+                f"{row.get('status', '')}\n"
+            )
+
+    print("-" * 60)
+    print(f"Done. {len(summary_rows)} file(s) processed.")
+    print(f"Summary CSV: {summary_path}")
+
+
 def main():
     """Main function to handle command line arguments and run analysis."""
     parser = argparse.ArgumentParser(
@@ -386,27 +514,53 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Single file
   python audio_analyzer.py song.wav
-  python audio_analyzer.py music.mp3
+
+  # Batch mode — analyze a whole folder
+  python audio_analyzer.py --batch ./tracks/ --output ./reports/
+  python audio_analyzer.py --batch ./tracks/ --output ./reports/ --format json
         """
     )
-    
+
     parser.add_argument(
         "audio_file",
-        help="Path to the audio file to analyze (.wav, .mp3, etc.)"
+        nargs="?",
+        help="Path to a single audio file to analyze (.wav, .mp3, etc.)"
     )
-    
+    parser.add_argument(
+        "--batch",
+        metavar="INPUT_DIR",
+        help="Batch mode: analyze all audio files in INPUT_DIR"
+    )
+    parser.add_argument(
+        "--output",
+        metavar="OUTPUT_DIR",
+        default="reports",
+        help="Output directory for batch reports (default: ./reports/)"
+    )
+    parser.add_argument(
+        "--format",
+        choices=["txt", "json"],
+        default="txt",
+        help="Report format for batch mode: txt (default) or json"
+    )
+
     args = parser.parse_args()
-    
-    # Check if file exists
+
     import os
-    if not os.path.exists(args.audio_file):
-        print(f"Error: File '{args.audio_file}' not found.")
+
+    if args.batch:
+        batch_analyze(args.batch, args.output, args.format)
+    elif args.audio_file:
+        if not os.path.exists(args.audio_file):
+            print(f"Error: File '{args.audio_file}' not found.")
+            sys.exit(1)
+        analyze_audio(args.audio_file)
+    else:
+        parser.print_help()
         sys.exit(1)
-    
-    # Perform analysis
-    analyze_audio(args.audio_file)
 
 
 if __name__ == "__main__":
-    main() 
+    main()

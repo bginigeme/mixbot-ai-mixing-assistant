@@ -1,2 +1,58 @@
 {"timestamp": "2025-07-29T09:41:24.154701", "action": "page_view", "details": null, "session_id": "session_1753800084", "page": "mixbot_main"}
 {"timestamp": "2025-07-29T09:41:24.155169", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1753800084", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:08:06.641268", "action": "page_view", "details": null, "session_id": "session_1753906086", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:08:06.642071", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1753906086", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:03.780764", "action": "page_view", "details": null, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:03.782322", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:05.989490", "action": "page_view", "details": null, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:05.991849", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:08.907936", "action": "page_view", "details": null, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:08.909564", "action": "daw_selection", "details": {"daw": "Ableton Live"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:17.901199", "action": "page_view", "details": null, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:17.901899", "action": "daw_selection", "details": {"daw": "Ableton Live"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:19.012703", "action": "file_upload", "details": {"file_name": "LANDR-aug 22 jul 7-Balanced-Low.wav", "file_size": 21859918, "file_type": "wav"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:20.776708", "action": "page_view", "details": null, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:20.778707", "action": "daw_selection", "details": {"daw": "Ableton Live"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:23.928037", "action": "file_upload", "details": {"file_name": "LANDR-aug 22 jul 7-Balanced-Low.wav", "file_size": 21859918, "file_type": "wav"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:23.943882", "action": "error", "details": {"timestamp": "2025-07-30T15:32:23.942933", "action": "error", "error_type": "analysis_failed", "error_message": "module 'stem_separator' has no attribute 'separate_and_analyze_audio'", "error_details": {"analysis_step": "audio_analysis", "metrics_available": []}, "user_context": "audio_analysis", "session_id": "session_1753907523", "page": "mixbot_main", "user_agent": "unknown", "file_uploaded": true, "daw_selected": "Ableton Live"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:23.944520", "action": "error", "details": {"timestamp": "2025-07-30T15:32:23.944416", "action": "error", "error_type": "file_processing_failed", "error_message": "module 'stem_separator' has no attribute 'separate_and_analyze_audio'", "error_details": null, "user_context": null, "session_id": "session_1753907523", "page": "mixbot_main", "user_agent": "unknown", "file_uploaded": true, "daw_selected": "Ableton Live"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2025-07-30T15:32:23.944853", "action": "error", "details": {"timestamp": "2025-07-30T15:32:23.944739", "action": "error", "error_type": "analysis_button_error", "error_message": "module 'stem_separator' has no attribute 'separate_and_analyze_audio'", "error_details": null, "user_context": "analysis_button", "session_id": "session_1753907523", "page": "mixbot_main", "user_agent": "unknown", "file_uploaded": true, "daw_selected": "Ableton Live"}, "session_id": "session_1753907523", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:52:38.615915", "action": "page_view", "details": null, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:52:38.616590", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:53:28.574572", "action": "page_view", "details": null, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:53:28.576117", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:53:28.799216", "action": "file_upload", "details": {"file_name": "ross.wav", "file_size": 35092180, "file_type": "wav"}, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:53:37.818253", "action": "page_view", "details": null, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:53:37.820519", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:53:38.514239", "action": "file_upload", "details": {"file_name": "ross.wav", "file_size": 35092180, "file_type": "wav"}, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T10:53:52.841445", "action": "analysis_complete", "details": {"analysis_time_seconds": 14.325206995010376, "file_size_mb": 35092180}, "session_id": "session_1778514758", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:02.349395", "action": "page_view", "details": null, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:02.350053", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:17.956020", "action": "page_view", "details": null, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:17.957030", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:18.146129", "action": "file_upload", "details": {"file_name": "ross.wav", "file_size": 35092180, "file_type": "wav"}, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:19.984050", "action": "page_view", "details": null, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:19.986500", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:20.303351", "action": "file_upload", "details": {"file_name": "ross.wav", "file_size": 35092180, "file_type": "wav"}, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:04:22.639808", "action": "analysis_complete", "details": {"analysis_time_seconds": 2.333652973175049, "file_size_mb": 35092180}, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:01.211041", "action": "page_view", "details": null, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:01.211830", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:01.445607", "action": "file_upload", "details": {"file_name": "ross.wav", "file_size": 35092180, "file_type": "wav"}, "session_id": "session_1778515442", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:04.343370", "action": "page_view", "details": null, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:04.345409", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:13.734110", "action": "page_view", "details": null, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:13.737659", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:15.962944", "action": "page_view", "details": null, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:15.966363", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:17.667271", "action": "page_view", "details": null, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:17.669850", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:27.895839", "action": "page_view", "details": null, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:23:27.897299", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778516584", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:43:42.431652", "action": "page_view", "details": null, "session_id": "session_1778517822", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:43:42.432251", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778517822", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:43:46.523946", "action": "page_view", "details": null, "session_id": "session_1778517822", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:43:46.526878", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778517822", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:43:49.780584", "action": "page_view", "details": null, "session_id": "session_1778517822", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T11:43:49.783749", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778517822", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T12:00:15.552926", "action": "page_view", "details": null, "session_id": "session_1778518815", "page": "mixbot_main"}
+{"timestamp": "2026-05-11T12:00:15.553508", "action": "daw_selection", "details": {"daw": "FL Studio"}, "session_id": "session_1778518815", "page": "mixbot_main"}
