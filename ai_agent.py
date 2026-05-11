@@ -20,26 +20,41 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_ANTHROPIC_AVAILABLE = False
 _client = None
+_client_initialized = False
 
-try:
-    import anthropic
 
-    # Check .env / environment variable first, then Streamlit secrets (Cloud deployment)
-    _api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not _api_key:
-        try:
-            import streamlit as st
-            _api_key = st.secrets.get("ANTHROPIC_API_KEY")
-        except Exception:
-            pass
+def _get_client():
+    """
+    Lazy-initialize the Anthropic client.
+    Called on first use so Streamlit secrets are fully loaded by then.
+    """
+    global _client, _client_initialized
+    if _client_initialized:
+        return _client
 
-    if _api_key:
-        _client = anthropic.Anthropic(api_key=_api_key)
-        _ANTHROPIC_AVAILABLE = True
-except ImportError:
-    pass
+    _client_initialized = True
+
+    try:
+        import anthropic
+
+        # 1. Environment variable / .env file
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+
+        # 2. Streamlit secrets (Streamlit Cloud deployment)
+        if not api_key:
+            try:
+                import streamlit as st
+                api_key = st.secrets.get("ANTHROPIC_API_KEY")
+            except Exception:
+                pass
+
+        if api_key:
+            _client = anthropic.Anthropic(api_key=api_key)
+    except ImportError:
+        pass
+
+    return _client
 
 from audio_tools import analyze_audio_file, get_spectral_features, get_mix_recommendations
 
@@ -152,7 +167,7 @@ def _execute_tool(tool_name: str, tool_input: dict) -> str:
 
 def is_available() -> bool:
     """Returns True if the Anthropic client is ready."""
-    return _ANTHROPIC_AVAILABLE
+    return _get_client() is not None
 
 
 def generate_ai_feedback(
@@ -171,7 +186,8 @@ def generate_ai_feedback(
 
     Returns a markdown string on success, or None if unavailable.
     """
-    if not _ANTHROPIC_AVAILABLE:
+    client = _get_client()
+    if not client:
         return None
 
     if file_path:
@@ -215,7 +231,7 @@ def generate_ai_feedback(
     try:
         # Agentic loop — keep going until Claude stops calling tools
         while True:
-            response = _client.messages.create(
+            response = client.messages.create(
                 model=MODEL,
                 max_tokens=2000,
                 system=SYSTEM_PROMPT,
@@ -263,10 +279,11 @@ def chat_with_agent(
     chat_history is a list of {"role": "user"|"assistant", "content": ...} dicts.
     Returns the assistant's reply as a string.
     """
-    if not _ANTHROPIC_AVAILABLE:
+    client = _get_client()
+    if not client:
         return (
             "AI chat is not available — add your ANTHROPIC_API_KEY to a `.env` file "
-            "in the project root to enable it."
+            "or Streamlit secrets to enable it."
         )
 
     rms_db = metrics.get("rms_db", 0)
@@ -294,7 +311,7 @@ def chat_with_agent(
 
     try:
         while True:
-            response = _client.messages.create(
+            response = client.messages.create(
                 model=MODEL,
                 max_tokens=700,
                 system=SYSTEM_PROMPT,
