@@ -24,7 +24,7 @@ def track_user_action(action, details=None):
             "action": action,
             "details": details,
             "session_id": st.session_state.get("session_id", "unknown"),
-            "page": "mixbot_main"
+            "page": "egwu_main"
         }
         
         # Log to file (for simple tracking)
@@ -82,7 +82,7 @@ def track_error(error_type, error_message, error_details=None, user_context=None
             "error_details": error_details,
             "user_context": user_context,
             "session_id": st.session_state.get("session_id", "unknown"),
-            "page": "mixbot_main",
+            "page": "egwu_main",
             "user_agent": st.session_state.get("user_agent", "unknown"),
             "file_uploaded": st.session_state.get("file_uploaded", False),
             "daw_selected": st.session_state.get("daw_selected", "none")
@@ -180,7 +180,7 @@ def track_browser_error(error_type, error_message, user_agent=None, browser_info
 
 # Page configuration
 st.set_page_config(
-    page_title="Mixbot - AI Mixing Assistant",
+    page_title="Egwu - AI Mixing Assistant",
     page_icon="🎵",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -1577,7 +1577,7 @@ def main():
 def main_app_content():
     
     # Header
-    st.markdown('<h1 class="main-header">🎵 Mixbot</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🎵 Egwu</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">AI-Powered Mixing Assistant</p>', unsafe_allow_html=True)
     
     # Sidebar
@@ -1638,7 +1638,7 @@ def main_app_content():
         st.markdown("---")
         st.markdown("### 📊 About")
         st.markdown("""
-        **Mixbot** analyzes your audio and provides professional mixing feedback tailored to your DAW.
+        **Egwu** analyzes your audio and provides professional mixing feedback tailored to your DAW.
         
         **Features:**
         - 🎵 Audio analysis
@@ -2068,7 +2068,7 @@ def main_app_content():
             st.caption("Ask follow-up questions about your mix — Claude has the full analysis context.")
 
             for msg in st.session_state.chat_history:
-                role_label = "You" if msg["role"] == "user" else "MixBot AI"
+                role_label = "You" if msg["role"] == "user" else "Egwu AI"
                 with st.chat_message(msg["role"]):
                     st.markdown(f"**{role_label}:** {msg['content']}")
 
@@ -2099,7 +2099,7 @@ def main_app_content():
         
         # Create downloadable text
         feedback_text = f"""
-MIXBOT - AI Mixing Feedback Report
+EGWU - AI Mixing Feedback Report
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 DAW: {selected_daw}
 Vibe/Reference: {vibe_reference if vibe_reference else 'Not specified'}
@@ -2115,7 +2115,7 @@ Vibe/Reference: {vibe_reference if vibe_reference else 'Not specified'}
         download_clicked = st.download_button(
             label="📥 Download Feedback Report (.txt)",
             data=feedback_text,
-            file_name=f"mixbot_feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            file_name=f"egwu_feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
             mime="text/plain"
         )
         

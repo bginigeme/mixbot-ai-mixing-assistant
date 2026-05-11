@@ -1,5 +1,5 @@
 """
-MixBot AI Agent
+Egwu AI Agent
 
 Claude-powered mixing engineer with an agentic tool-use loop.
 
@@ -60,7 +60,7 @@ from audio_tools import analyze_audio_file, get_spectral_features, get_mix_recom
 
 MODEL = "claude-sonnet-4-5"
 
-SYSTEM_PROMPT = """You are MixBot, an expert mixing and mastering engineer with 20+ years of experience 
+SYSTEM_PROMPT = """You are Egwu, an expert mixing and mastering engineer with 20+ years of experience 
 across all genres. You have tools to analyze audio files directly.
 
 Your workflow:

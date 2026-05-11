@@ -1,4 +1,4 @@
-# MixBot — Agent Instructions
+# Egwu — Agent Instructions
 
 Read this before making any changes. It covers architecture, conventions, and things not to break.
 
@@ -6,7 +6,8 @@ Read this before making any changes. It covers architecture, conventions, and th
 
 ## What This Project Is
 
-AI-powered audio mixing assistant. Users upload a track → audio is analyzed with librosa DSP →
+AI-powered audio mixing assistant (*Egwu* means music/dance in Igbo).
+Users upload a track → audio is analyzed with librosa DSP →
 Claude runs an agentic tool-use loop (calling analyze_audio, spectral_features, key_detection,
 mix_recommendations) → returns professional mixing feedback and holds a conversational chat.
 

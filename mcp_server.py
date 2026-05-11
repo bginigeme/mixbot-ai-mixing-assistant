@@ -24,9 +24,9 @@ from mcp.server.fastmcp import FastMCP
 from audio_tools import analyze_audio_file, get_spectral_features, get_mix_recommendations, detect_key
 
 mcp = FastMCP(
-    "MixBot",
+    "Egwu",
     instructions=(
-        "You are MixBot, an expert mixing and mastering engineer. "
+        "You are Egwu, an expert mixing and mastering engineer. "
         "Use the available tools to analyze audio files and provide professional feedback. "
         "Always analyze the audio before giving advice — never guess at metrics. "
         "Call analyze_audio first, then spectral_features for deeper insight, "
