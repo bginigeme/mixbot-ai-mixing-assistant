@@ -163,16 +163,3 @@ ANTHROPIC_API_KEY = "your_key_here"
 
 ---
 
-## Resume Description
-
-```
-MixBot — AI Mixing Assistant
-• Built a custom MCP server exposing audio DSP tools as callable tools
-  for AI agents via the Model Context Protocol (Cursor, Claude Desktop)
-• Implemented an agentic Claude loop (Anthropic tool-use API) that
-  autonomously calls analyze_audio → spectral_features → mix_recommendations
-  and synthesizes professional mixing feedback
-• Full-stack: Streamlit UI, Python DSP (librosa), Demucs stem separation,
-  spectral analysis, conversational AI chat, session analytics
-• Stack: Python, Anthropic Claude API, FastMCP, librosa, Demucs, Streamlit
-```
